@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭消费仪表盘</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .chart-container {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 800px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chart-container">
+        <h1>支出分类概览</h1>
+        <canvas id="categoryPieChart"></canvas>
+    </div>
+
+    <script>
+        async function renderChart() {
+            try {
+                // 1. Fetch and parse the ledger data
+                const response = await fetch('./ledger_data.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const ledgerData = await response.json();
+
+                // 2. Process data for the pie chart
+                const categoryTotals = {};
+                ledgerData.forEach(record => {
+                    const category = record['类别'] || '待分类';
+                    const amount = parseFloat(record['金额（元）']);
+
+                    if (!isNaN(amount)) {
+                        categoryTotals[category] = (categoryTotals[category] || 0) + amount;
+                    }
+                });
+
+                const labels = Object.keys(categoryTotals);
+                const data = Object.values(categoryTotals);
+
+                // 3. Render the chart
+                const ctx = document.getElementById('categoryPieChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '消费总额',
+                            data: data,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 206, 86, 0.8)',
+                                'rgba(75, 192, 192, 0.8)',
+                                'rgba(153, 102, 255, 0.8)',
+                                'rgba(255, 159, 64, 0.8)',
+                                'rgba(199, 199, 199, 0.8)',
+                                'rgba(83, 102, 255, 0.8)',
+                                'rgba(40, 159, 64, 0.8)',
+                                'rgba(210, 99, 132, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 255, 255, 1)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: '各项支出分类占比'
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('无法加载或渲染图表:', error);
+                const container = document.querySelector('.chart-container');
+                container.innerHTML = '<h1>加载数据失败</h1><p>请检查 `ledger_data.json` 文件是否存在，以及浏览器控制台是否有错误信息。</p>';
+            }
+        }
+
+        renderChart();
+    </script>
+
+</body>
+</html>
